@@ -17,8 +17,21 @@ class GameBoard:
         Draw the game board on the screen.
         :param screen: Pygame screen object to draw on
         """
+        BLACK = (0, 0, 0)
+        WHITE = (200, 200, 200)
+        screen.fill(BLACK)
+        self.board[2][3] = 1
         # TODO: Iterate through the 2D list and draw rectangles for each cell
         # Empty cells can be one color, trails another
+        cell_size = screen.get_width() // self.width
+        for x in range(0, self.width):
+            for y in range(0, self.height):
+                rect = pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size)
+                pygame.draw.rect(screen, WHITE, rect, 1)
+                
+                if self.board[x][y] == 1:
+                    pygame.Surface.fill(screen, WHITE, rect)
+                    
 
     def is_collision(self, x, y):
         """
@@ -29,3 +42,6 @@ class GameBoard:
         """
         # TODO: Check if x and y are within board boundaries
         # Also check if the cell at (x, y) is not empty (i.e., has a trail)
+        if x < 0 or x >= self.width or y < 0 or y >= self.height:
+            return True
+        
