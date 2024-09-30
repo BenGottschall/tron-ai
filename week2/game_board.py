@@ -20,7 +20,7 @@ class GameBoard:
         BLACK = (0, 0, 0)
         WHITE = (200, 200, 200)
         screen.fill(BLACK)
-        self.board[2][3] = 1
+        self.board[2][5] = 1
         # TODO: Iterate through the 2D list and draw rectangles for each cell
         # Empty cells can be one color, trails another
         cell_size = screen.get_width() // self.width
@@ -40,8 +40,14 @@ class GameBoard:
         :param y: Y-coordinate to check
         :return: True if collision, False otherwise
         """
+        cell_x = x // self.width
+        cell_y = y // self.height
         # TODO: Check if x and y are within board boundaries
         # Also check if the cell at (x, y) is not empty (i.e., has a trail)
         if x < 0 or x >= self.width or y < 0 or y >= self.height:
             return True
+        if self.board[cell_x][cell_y]
+            return True
+        return False
+        
         

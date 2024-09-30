@@ -4,6 +4,7 @@ from week2.game_board import GameBoard
 # Initialize Pygame
 pygame.init()
 
+
 # Set up the game window
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
