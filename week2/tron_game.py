@@ -55,8 +55,11 @@ def update_game_state(player, game_board):
     player.update_direction()
     player.move()
     print(f"[{player.x // CELL_SIZE}, {player.y // CELL_SIZE }]")
-    if game_board.is_collision(player.x // CELL_SIZE, player.y // CELL_SIZE):
+    
+    if game_board.is_collision(player.x // CELL_SIZE, 
+                               player.y // CELL_SIZE):
         return False
+    
     game_board.board[player.x // CELL_SIZE][player.y // CELL_SIZE] = 1
     
     return True
