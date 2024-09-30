@@ -52,7 +52,7 @@ def update_game_state(player, game_board):
     # TODO: Move the player
     # Check for collisions with game_board
     # Update game_board with new player position
-    #player.update_direction()
+    player.update_direction()
     player.move()
     print(f"[{player.x // CELL_SIZE}, {player.y // CELL_SIZE }]")
     if game_board.is_collision(player.x // CELL_SIZE, player.y // CELL_SIZE):
