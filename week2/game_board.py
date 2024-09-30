@@ -1,4 +1,5 @@
-import pygame;
+import pygame
+from config import *
 
 class GameBoard:
     def __init__(self, width, height):
@@ -20,17 +21,16 @@ class GameBoard:
         BLACK = (0, 0, 0)
         WHITE = (200, 200, 200)
         screen.fill(BLACK)
-        self.board[2][5] = 1
-        # TODO: Iterate through the 2D list and draw rectangles for each cell
+        # Iterate through the 2D list and draw rectangles for each cell
         # Empty cells can be one color, trails another
         cell_size = screen.get_width() // self.width
-        for x in range(0, self.width):
-            for y in range(0, self.height):
+        for x in range(0, SCREEN_WIDTH):
+            for y in range(0, SCREEN_HEIGHT):
                 rect = pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size)
                 pygame.draw.rect(screen, WHITE, rect, 1)
                 
-                if self.board[x][y] == 1:
-                    pygame.Surface.fill(screen, WHITE, rect)
+                # if self.board[x][y] == 1:
+                #     pygame.Surface.fill(screen, WHITE, rect)
                     
 
     def is_collision(self, x, y):
@@ -40,13 +40,17 @@ class GameBoard:
         :param y: Y-coordinate to check
         :return: True if collision, False otherwise
         """
-        cell_x = x // self.width
-        cell_y = y // self.height
-        # TODO: Check if x and y are within board boundaries
+        
+        cell_x = x
+        cell_y = y
+        #print(f"{cell_x}, {cell_y}")
+        # Check if x and y are within board boundaries
         # Also check if the cell at (x, y) is not empty (i.e., has a trail)
-        if x < 0 or x >= self.width or y < 0 or y >= self.height:
+        if x < 0 or x >= BOARD_WIDTH or y < 0 or y >= BOARD_HEIGHT:
+            print("hit the border")
             return True
-        if self.board[cell_x][cell_y]
+        if self.board[cell_x][cell_y]:
+            print("collision")
             return True
         return False
         
