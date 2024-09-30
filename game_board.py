@@ -10,7 +10,8 @@ class GameBoard:
         """
         self.width = width
         self.height = height
-        self.board = [[0 for _ in range(width)] for _ in range(height)]
+        self.board = [[0 for _ in range(height)] for _ in range(width)]
+        print(f"Size of gameboard: [{len(self.board[0])} rows, {len(self.board)} columns]")
         
 
     def draw(self, screen):
@@ -23,10 +24,12 @@ class GameBoard:
         screen.fill(BLACK)
         # Iterate through the 2D list and draw rectangles for each cell
         # Empty cells can be one color, trails another
-        cell_size = screen.get_width() // self.width
-        for x in range(0, SCREEN_WIDTH):
-            for y in range(0, SCREEN_HEIGHT):
-                rect = pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size)
+        cell_width = screen.get_width() // self.width
+        cell_height = screen.get_height() // self.height
+        
+        for x in range(self.width):
+            for y in range(self.height):
+                rect = pygame.Rect(x * cell_width, y * cell_height, cell_width, cell_height)
                 pygame.draw.rect(screen, WHITE, rect, 1)
                 
                 # if self.board[x][y] == 1:
@@ -43,10 +46,11 @@ class GameBoard:
         
         cell_x = x
         cell_y = y
+        print(f"[{cell_x}, {cell_y}]")
         #print(f"{cell_x}, {cell_y}")
         # Check if x and y are within board boundaries
         # Also check if the cell at (x, y) is not empty (i.e., has a trail)
-        if x < 0 or x >= BOARD_WIDTH or y < 0 or y >= BOARD_HEIGHT:
+        if x < 0 or x >= self.width or y < 0 or y >= self.height:
             print("hit the border")
             return True
         if self.board[cell_x][cell_y]:

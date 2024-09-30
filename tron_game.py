@@ -1,6 +1,6 @@
 import pygame
-from week2.game_board import GameBoard
-from week2.player import Player
+from game_board import GameBoard
+from player import Player
 from config import *
 
 def initialize_game():
@@ -39,7 +39,6 @@ def handle_events(player):
             elif event.key == pygame.K_LEFT:
                 player.change_direction([-1, 0])
             
-                
     return True
 
 
@@ -53,7 +52,7 @@ def update_game_state(player, game_board):
     # TODO: Move the player
     # Check for collisions with game_board
     # Update game_board with new player position
-    player.update_direction()
+    #player.update_direction()
     player.move()
     print(f"[{player.x // CELL_SIZE}, {player.y // CELL_SIZE }]")
     if game_board.is_collision(player.x // CELL_SIZE, player.y // CELL_SIZE):
@@ -94,7 +93,7 @@ def main():
     screen = initialize_game()
     game_board = GameBoard(BOARD_WIDTH, BOARD_HEIGHT)
     player1 = Player(PLAYER_START[0], PLAYER_START[1], COLORS["player1"])
-    print(game_board.board)
+    
     game_board.draw(screen)
 
     
