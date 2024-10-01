@@ -17,7 +17,7 @@ def initialize_game():
     return screen
     
 
-def handle_events(player):
+def handle_events(player1, player2):
     """
     Handle Pygame events, including player input.
     :param player: Player object to update based on input
@@ -31,18 +31,27 @@ def handle_events(player):
             return False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
-                player.change_direction([0, -1])
+                player1.change_direction([0, -1])
             elif event.key == pygame.K_DOWN:
-                player.change_direction([0, 1])
+                player1.change_direction([0, 1])
             elif event.key == pygame.K_RIGHT:
-                player.change_direction([1, 0])
+                player1.change_direction([1, 0])
             elif event.key == pygame.K_LEFT:
-                player.change_direction([-1, 0])
+                player1.change_direction([-1, 0])
+                
+            elif event.key == pygame.K_w:
+                player2.change_direction([0, -1])
+            elif event.key == pygame.K_s:
+                player2.change_direction([0, 1])
+            elif event.key == pygame.K_d:
+                player2.change_direction([1, 0])
+            elif event.key == pygame.K_a:
+                player2.change_direction([-1, 0])
             
     return True
 
 
-def update_game_state(player, game_board):
+def update_game_state(player1, player2, game_board):
     """
     Update the game state, including player movement and collision detection.
     :param player: Player object to update
@@ -52,18 +61,35 @@ def update_game_state(player, game_board):
     # TODO: Move the player
     # Check for collisions with game_board
     # Update game_board with new player position
-    player.update_direction()
-    player.move()
-    print(f"[{player.x // CELL_SIZE}, {player.y // CELL_SIZE }]")
-    if game_board.is_collision(player.x // CELL_SIZE, player.y // CELL_SIZE):
+    player1.update_direction()
+    player2.update_direction()
+    
+    print(f"Player1: [{player1.x}, {player1.y }]\nPlayer2: [{player2.x}, {player2.y}]")
+    
+    player1_collision = game_board.is_collision(player1.x_next, player1.y_next)
+    player2_collision = game_board.is_collision(player2.x_next, player2.y_next)
+    
+    if player1_collision and player2_collision:
+        print("Both")
         return False
-    game_board.board[player.x // CELL_SIZE][player.y // CELL_SIZE] = 1
+    elif player1_collision:
+        print("Player1")
+        return False
+    elif player2_collision:
+        print("Player2")
+        return False
+    
+    player1.move()
+    player2.move()
+    
+    game_board.board[player1.x][player1.y] = 1
+    game_board.board[player2.x][player2.y] = 1
     
     return True
 
     
 
-def draw_game(screen, game_board, player):
+def draw_game(screen, game_board, player1, player2):
     """
     Draw the current game state.
     :param screen: Pygame screen object to draw on
@@ -74,38 +100,37 @@ def draw_game(screen, game_board, player):
     # Draw the game board
     # Draw the player
     # Update the display
-    #screen.fill((0, 0, 0))  # Clear the screen with black
-    #game_board.draw(screen)
-    player.draw(screen)
+    player1.draw(screen)
+    player2.draw(screen)
     pygame.display.flip()
 
 def main():
     """
     Main game loop.
     """
-    # TODO: Initialize the game
-    # Create game objects (game_board, player)
-    # Run the game loop:
-    #   - Handle events
-    #   - Update game state
-    #   - Draw game
-    #   - Control game speed
+    # Initialize the game
     screen = initialize_game()
-    game_board = GameBoard(BOARD_WIDTH, BOARD_HEIGHT)
-    player1 = Player(PLAYER_START[0], PLAYER_START[1], COLORS["player1"])
     
+    # Create game objects (game_board, player1, player2)
+    game_board = GameBoard(BOARD_WIDTH, BOARD_HEIGHT)
+    player1 = Player(PLAYER1_START[0], PLAYER1_START[1], COLORS["player1"], 1)
+    player2 = Player(PLAYER2_START[0], PLAYER2_START[1], COLORS["player2"], 2)
+    
+    # Draw the background grid
     game_board.draw(screen)
 
-    
+    # Run the game loop
     running = True
     while running:
-        if not handle_events(player1):
+        if not handle_events(player1, player2):
             running = False
-        if not update_game_state(player1, game_board):
+        if not update_game_state(player1, player2, game_board):
             running = False
-            # create end event
-        draw_game(screen, game_board, player1)
-        pygame.time.delay(60)
+            # TODO: create end event
+        
+        draw_game(screen, game_board, player1, player2)
+        
+        pygame.time.delay(GAME_SPEED)
 
 main()
 

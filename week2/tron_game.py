@@ -56,8 +56,7 @@ def update_game_state(player, game_board):
     player.move()
     print(f"[{player.x // CELL_SIZE}, {player.y // CELL_SIZE }]")
     
-    if game_board.is_collision(player.x // CELL_SIZE, 
-                               player.y // CELL_SIZE):
+    if game_board.is_collision(player.x // CELL_SIZE, player.y // CELL_SIZE):
         return False
     
     game_board.board[player.x // CELL_SIZE][player.y // CELL_SIZE] = 1
@@ -96,6 +95,7 @@ def main():
     screen = initialize_game()
     game_board = GameBoard(BOARD_WIDTH, BOARD_HEIGHT)
     player1 = Player(PLAYER_START[0], PLAYER_START[1], COLORS["player1"])
+    
     
     game_board.draw(screen)
 

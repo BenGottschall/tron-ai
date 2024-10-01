@@ -1,10 +1,12 @@
-BOARD_WIDTH = 40
-BOARD_HEIGHT = 60
-CELL_SIZE = 20
+BOARD_WIDTH = 180 # number of cells horizontal
+BOARD_HEIGHT = 100 # number of cells vertical
+CELL_SIZE = 10 # pixel size of cells
 SCREEN_WIDTH = BOARD_WIDTH * CELL_SIZE
 SCREEN_HEIGHT = BOARD_HEIGHT * CELL_SIZE
+GAME_SPEED = 20 # tick speed in miliseconds
 
-PLAYER_START = [(SCREEN_WIDTH // 4), SCREEN_HEIGHT // 2]
+PLAYER1_START = [BOARD_WIDTH - (BOARD_WIDTH // 4), BOARD_HEIGHT // 2]
+PLAYER2_START = [(BOARD_WIDTH // 4), BOARD_HEIGHT // 2]
 
 COLORS = {
     "background": (0, 0, 0),

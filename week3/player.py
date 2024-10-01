@@ -3,7 +3,7 @@ from config import *
 from collections import deque
 
 class Player:
-    def __init__(self, x, y, color):
+    def __init__(self, x, y, color, player_id):
         """
         Initialize the player.
         :param x: Initial x-coordinate
@@ -15,9 +15,14 @@ class Player:
         self.x = x
         self.y = y
         self.color = color
-        self.direction = [1, 0]
         self.trail = []
         self.direction_queue = deque()
+        if player_id == 1:
+            self.direction = [-1, 0]
+        else:
+            self.direction = [1, 0]
+        self.x_next = self.x + self.direction[0]
+        self.y_next = self.y + self.direction[1]
         
     def move(self):
         """
@@ -25,9 +30,11 @@ class Player:
         """
         # Update the player's position based on their direction
         # Add the new position to the trail
-        self.x += self.direction[0] * CELL_SIZE
-        self.y += self.direction[1] * CELL_SIZE
+        self.x += self.direction[0]
+        self.y += self.direction[1]
         self.trail.append([self.x, self.y])
+        self.x_next = self.x + self.direction[0]
+        self.y_next = self.y + self.direction[1]
         
         
     def change_direction(self, direction):
@@ -51,8 +58,7 @@ class Player:
         :param screen: Pygame screen object to draw on
         """
         # TODO: Draw the player's current position and their entire trail
-        cell_size = screen.get_width() // BOARD_WIDTH
-        rect = pygame.Rect(self.trail[-1][0], self.trail[-1][1], cell_size, cell_size)
+        rect = pygame.Rect(self.trail[-1][0] * CELL_SIZE, self.trail[-1][1] * CELL_SIZE, CELL_SIZE, CELL_SIZE)
         pygame.Surface.fill(screen, self.color, rect)
         
         
