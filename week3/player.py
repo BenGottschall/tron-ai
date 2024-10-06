@@ -33,8 +33,6 @@ class Player:
         self.x += self.direction[0]
         self.y += self.direction[1]
         self.trail.append([self.x, self.y])
-        self.x_next = self.x + self.direction[0]
-        self.y_next = self.y + self.direction[1]
         
         
     def change_direction(self, direction):
@@ -50,6 +48,8 @@ class Player:
     def update_direction(self):
         if self.direction_queue:
             self.direction = self.direction_queue.popleft()
+        self.x_next = self.x + self.direction[0]
+        self.y_next = self.y + self.direction[1]
             
         
     def draw(self, screen):

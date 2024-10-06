@@ -64,7 +64,7 @@ def update_game_state(player1, player2, game_board):
     player1.update_direction()
     player2.update_direction()
     
-    print(f"Player1: [{player1.x}, {player1.y }]\nPlayer2: [{player2.x}, {player2.y}]")
+    print(f"Player1: [{player1.x}, {player1.y }], next: [{player1.x_next}, {player1.y_next}]\nPlayer2: [{player2.x}, {player2.y}] next: [{player2.x_next}, {player2.y_next}]")
     
     player1_collision = game_board.is_collision(player1.x_next, player1.y_next)
     player2_collision = game_board.is_collision(player2.x_next, player2.y_next)
@@ -131,6 +131,7 @@ def main():
         draw_game(screen, game_board, player1, player2)
         
         pygame.time.delay(GAME_SPEED)
+        
 
 main()
 
