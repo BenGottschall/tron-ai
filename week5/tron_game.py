@@ -24,6 +24,26 @@ def handle_events() -> bool:
             return False     
     return True
 
+# def handle_events(player1: Player) -> bool:
+#     # use this method if you want to play against the ai, have to update player class tho
+#     key_event = None
+#     for event in pygame.event.get():
+#         if event.type == pygame.QUIT:
+#             return False
+#         elif event.type == pygame.KEYDOWN:  # Handle key press
+#             key_event = event  # Overwrite with the latest key event
+        
+#         if key_event:
+#             if event.key == pygame.K_UP:
+#                 player1.change_direction([0, -1])
+#             elif event.key == pygame.K_DOWN:
+#                 player1.change_direction([0, 1])
+#             elif event.key == pygame.K_RIGHT:
+#                 player1.change_direction([1, 0])
+#             elif event.key == pygame.K_LEFT:
+#                 player1.change_direction([-1, 0])  
+#     return True
+
 
 def update_game_state(player1: Player, player2: Player, game_board: GameBoard) -> int:
     """

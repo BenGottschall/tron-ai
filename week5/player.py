@@ -32,6 +32,9 @@ class Player:
         """
         # Update the player's position based on their direction
         # Add the new position to the trail
+        # if self.player_id == 2: 
+        #     new_direction = self.ai.get_direction()
+        #     self.change_direction(new_direction)
         new_direction = self.ai.get_direction()
         self.change_direction(new_direction)
         self.x += self.direction[0]
