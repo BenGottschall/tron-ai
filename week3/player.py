@@ -15,7 +15,7 @@ class Player:
         self.x = x
         self.y = y
         self.color = color
-        self.trail = []
+        self.trail = [[self.x, self.y]]
         self.direction_queue = deque()
         if player_id == 1:
             self.direction = [-1, 0]

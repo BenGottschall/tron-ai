@@ -118,7 +118,21 @@ def main():
     
     # Draw the background grid
     game_board.draw(screen)
-
+    player1.draw(screen)
+    player2.draw(screen)
+    pygame.display.flip()
+    
+    # Wait for key press
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+            elif event.type == pygame.KEYDOWN:
+                waiting = False
+                break
+    
     # Run the game loop
     running = True
     while running:
