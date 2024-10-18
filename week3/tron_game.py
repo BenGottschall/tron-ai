@@ -114,6 +114,7 @@ def main():
     # Create game objects (game_board, player1, player2)
     game_board = GameBoard(BOARD_WIDTH, BOARD_HEIGHT)
     player1 = Player(PLAYER1_START[0], PLAYER1_START[1], COLORS["player1"], 1)
+    
     player2 = Player(PLAYER2_START[0], PLAYER2_START[1], COLORS["player2"], 2)
     
     # Draw the background grid
