@@ -50,17 +50,18 @@ class Player:
         # TODO: Update the player's direction
         # Ensure the new direction is not opposite to the current direction
         if self.direction[0] * direction[0] + self.direction[1] * direction[1] == 0:
-            self.direction = direction
+            # self.direction = direction
+            self.direction_queue.append(direction)
             
         # old code below:
         # if (direction[0] != -self.direction[0] or direction[1] != -self.direction[1]):
         #     self.direction_queue.append(direction)
     
-    # def update_direction(self):
-    #     if self.direction_queue:
-    #         self.direction = self.direction_queue.popleft()
-    #     self.x_next = self.x + self.direction[0]
-    #     self.y_next = self.y + self.direction[1]
+    def update_direction(self):
+        if self.direction_queue:
+            self.direction = self.direction_queue.popleft()
+        self.x_next = self.x + self.direction[0]
+        self.y_next = self.y + self.direction[1]
             
         
     def draw(self, screen):

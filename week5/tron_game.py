@@ -52,6 +52,8 @@ def update_game_state(player1: Player, player2: Player, game_board: GameBoard) -
     :param game_board: GameBoard object to check collisions against
     :return: False if the game is over (collision), True otherwise
     """
+    player1.update_direction()
+    player2.update_direction()
     # Store the next positions
     next_x1, next_y1 = player1.x + player1.direction[0], player1.y + player1.direction[1]
     next_x2, next_y2 = player2.x + player2.direction[0], player2.y + player2.direction[1]
