@@ -1,7 +1,12 @@
 # main.py
 import numpy as np
+<<<<<<< HEAD
 from week4.cart_pole_env import create_env
 from week4.dqn_agent import DQNAgent
+=======
+from cart_pole_env import create_env
+from dqn_agent import DQNAgent
+>>>>>>> 0ae100a (added these stupid files)
 import time
 import os
 import tensorflow as tf

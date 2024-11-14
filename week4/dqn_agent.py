@@ -8,6 +8,7 @@ from keras import models, layers, optimizers
 class DQNAgent:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
+<<<<<<< HEAD
         self.action_size = action_size
         self.memory = deque(maxlen=2000)
         self.gamma = 0.95
@@ -18,6 +19,8 @@ class DQNAgent:
         self.model = self._build_model()
         self.target_model = self._build_model()
         self.update_target_model()
+=======
+>>>>>>> 0ae100a (added these stupid files)
 
     def _build_model(self):
         model = models.Sequential([
