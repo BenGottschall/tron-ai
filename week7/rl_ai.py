@@ -39,7 +39,7 @@ class RLAgent:
             self.load_model(model_file)
             self.model.eval()
             
-    def get_nearest_distances(self, game_board, player):
+    def get_nearest_distances(self, game_board, player, opponent):
         #calculate distance to nearest player trail or wall in eight directions
         directions = [[0, -1], [0, 1], [-1, 0], [1, 0], 
                       [-1, -1], [-1, 1], [1, -1], [1, 1]]
@@ -52,6 +52,20 @@ class RLAgent:
                 x += direction[0]
                 y += direction[1]
                 distance += 1
+                
+                # Check if we're out of bounds for walls
+                if x < 0 or x >= game_board.width or y < 0 or y >= game_board.height:
+                    obstacle_distances.append(distance)
+                    break
+
+                # Check if there is an opponenet
+                elif x == opponent.x and y == opponent.y:
+                    obstacle_distances.append(distance)
+                    break
+                
+                else:
+                
+        # return obstacle_distances  YOU GOT A LOT OF STUFF TO DO TONIGHT
 
     def get_state(self, game_board, player, opponent):
         state = np.zeros((7, 7, 3))  # 3 channels: empty, player, opponent
