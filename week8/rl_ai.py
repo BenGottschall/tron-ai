@@ -3,15 +3,14 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
-import math
 from collections import deque
 
 class DQN(nn.Module):
     def __init__(self, input_size, output_size):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(input_size, 64)
-        self.fc2 = nn.Linear(64, 32)
-        self.fc3 = nn.Linear(32, output_size)
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, output_size)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
@@ -24,9 +23,9 @@ class RLAgent:
         self.action_size = action_size
         self.player_id = player_id
         self.memory = deque(maxlen=10000)
-        self.gamma = 0.95  # discount rate
+        self.gamma = 0.9  # discount rate
         self.epsilon = 0.01 if model_file else 1.0  # exploration rate
-        self.epsilon_min = 0.1
+        self.epsilon_min = 0.2
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -39,65 +38,22 @@ class RLAgent:
         if model_file:
             self.load_model(model_file)
             self.model.eval()
-            
-    def get_nearest_distances(self, game_board, player, opponent):
-        # calculate distance to nearest player trail or wall in eight directions
-        
-        max_distance = math.sqrt(game_board.width**2 + game_board.height**2)
-        directions = [[0, -1], [0, 1], [-1, 0], [1, 0]]
-        obstacle_distances = []
-        
-        for direction in directions:
-            x, y = player.x, player.y
-            distance = 0
-            while True:
-                x += direction[0]
-                y += direction[1]
-                distance += 1
-                
-                # Check if we're out of bounds for walls
-                if x < 0 or x >= game_board.width or y < 0 or y >= game_board.height:
-                    normalized_distance = distance / max_distance
-                    obstacle_distances.append([normalized_distance, 1, 0, 0]) # Wall
-                    break
-                if game_board.grid[y][x] == player.player_id:
-                    normalized_distance = distance / max_distance
-                    obstacle_distances.append([normalized_distance, 0, 1, 0]) # Player
-                    break
-                if game_board.grid[y][x] == opponent.player_id:
-                    normalized_distance = distance / max_distance
-                    obstacle_distances.append([normalized_distance, 0, 0, 1]) # Opponent
-                    break
-                
-        return obstacle_distances
 
     def get_state(self, game_board, player, opponent):
-        # state = np.zeros((7, 7, 3))  # 3 channels: empty, player, opponent
-        # for i in range(-3, 4):
-        #     for j in range(-3, 4):
-        #         x, y = player.x + i, player.y + j
-        #         if 0 <= x < game_board.width and 0 <= y < game_board.height:
-        #             if game_board.grid[y][x] == 0:
-        #                 state[i+3][j+3][0] = 1  # Empty
-        #             elif game_board.grid[y][x] == player.player_id:
-        #                 state[i+3][j+3][1] = 1  # Player
-        #             else:
-        #                 state[i+3][j+3][2] = 1  # Opponent
-        #         else:
-        #             state[i+3][j+3][2] = 1  # Treat walls as opponent
-        
-        obstacle_distances = np.array(self.get_nearest_distances(game_board, player, opponent))
-        player_info = [player.x / game_board.width, player.y / game_board.height] + player.direction
-        opponent_info = [opponent.x / game_board.width, opponent.y / game_board.height] + opponent.direction
-        
-        state = np.concatenate([
-            obstacle_distances.flatten(), 
-            player_info, 
-            opponent_info
-            ])
-        assert state.ndim == 1, f"State should be 1D, but got {state.ndim} dimensions"
-        
-        return state
+        state = np.zeros((7, 7, 3))  # 3 channels: empty, player, opponent
+        for i in range(-3, 4):
+            for j in range(-3, 4):
+                x, y = player.x + i, player.y + j
+                if 0 <= x < game_board.width and 0 <= y < game_board.height:
+                    if game_board.grid[y][x] == 0:
+                        state[i+3][j+3][0] = 1  # Empty
+                    elif game_board.grid[y][x] == player.player_id:
+                        state[i+3][j+3][1] = 1  # Player
+                    else:
+                        state[i+3][j+3][2] = 1  # Opponent
+                else:
+                    state[i+3][j+3][2] = 1  # Treat walls as opponent
+        return state.flatten()
 
     def get_valid_directions(self, current_direction):
         invalid_direction = [-current_direction[0], -current_direction[1]]
@@ -142,7 +98,8 @@ class RLAgent:
             loss.backward()
             self.optimizer.step()
 
-        
+        # if self.epsilon > self.epsilon_min:
+        #     self.epsilon *= self.epsilon_decay
 
     def train(self, game_board, player, opponent):
         state = self.get_state(game_board, player, opponent)
@@ -160,14 +117,13 @@ class RLAgent:
             collision = player.move(game_board)
 
             next_state = self.get_state(game_board, player, opponent)
-            reward = 10  # Reward for surviving one more step
+            reward = 1  # Reward for surviving one more step
 
-        
             if collision or game_board.is_collision(player.x, player.y):
-                reward = -100  # Penalty for collision
+                reward = -10  # Penalty for collision
                 done = True
             elif game_board.is_collision(opponent.x, opponent.y):
-                reward = 20  # Reward for opponent's collision
+                reward = 10  # Reward for opponent's collision
                 done = True
 
             total_reward += reward

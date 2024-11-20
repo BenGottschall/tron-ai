@@ -26,8 +26,8 @@ def run_game(ai_class1, ai_class2, model_file1=None, model_file2=None):
     screen = initialize_game()
     game_board = GameBoard(40, 30)
     
-    ai1 = RLAgent(state_size=24, action_size=4, player_id=1, model_file=model_file1) if ai_class1 == RLAgent else ai_class1()
-    ai2 = RLAgent(state_size=24, action_size=4, player_id=2, model_file=model_file2) if ai_class2 == RLAgent else ai_class2()
+    ai1 = RLAgent(state_size=7*7*3, action_size=4, player_id=1, model_file=model_file1) if ai_class1 == RLAgent else ai_class1()
+    ai2 = RLAgent(state_size=7*7*3, action_size=4, player_id=2, model_file=model_file2) if ai_class2 == RLAgent else ai_class2()
     
     player1 = Player(10, 15, (255, 0, 0), 1, ai1)
     player2 = Player(30, 15, (0, 0, 255), 2, ai2)
@@ -42,7 +42,6 @@ def run_game(ai_class1, ai_class2, model_file1=None, model_file2=None):
     while running:
         running = handle_events()
         if running:
-            
             player1.move(game_board)
             player2.move(game_board)
             if game_board.is_collision(player1.x, player1.y) or game_board.is_collision(player2.x, player2.y):
@@ -56,4 +55,4 @@ def run_game(ai_class1, ai_class2, model_file1=None, model_file2=None):
     pygame.quit()
 
 if __name__ == "__main__":
-    run_game(RLAgent, RLAgent, "tron_model_player1_checkpoint_450.pth", "tron_model_player2_checkpoint_450.pth")
+    run_game(RLAgent, RLAgent, "tron_model_player1.pth", "tron_model_player2.pth")
