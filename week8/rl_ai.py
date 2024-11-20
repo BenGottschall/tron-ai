@@ -3,19 +3,26 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
+import math
 from collections import deque
 
 class DQN(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_shape, output_size):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(input_size, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, output_size)
+        self.conv1 = nn.Conv2d(input_shape[0], 32, kernel_size = 3, stride = 1)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size = 3, stride=1)
+        self.bn2 = nn.BatchNorm2d(64)
+        
+        self.fc1 = nn.Linear(64 * 3 * 3, 128)
+        self.fc2 = nn.Linear(128, output_size)
 
     def forward(self, x):
+        x = torch.relu(self.bn1(self.conv1(x)))
+        x = torch.relu(self.bn2(self.conv2(x)))
+        x = x.view(x.size(0), -1)  # Flatten the convolutional output
         x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        return self.fc3(x)
+        return self.fc2(x)
 
 class RLAgent:
     def __init__(self, state_size, action_size, player_id, model_file=None):
@@ -25,7 +32,7 @@ class RLAgent:
         self.memory = deque(maxlen=10000)
         self.gamma = 0.9  # discount rate
         self.epsilon = 0.01 if model_file else 1.0  # exploration rate
-        self.epsilon_min = 0.2
+        self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -40,20 +47,20 @@ class RLAgent:
             self.model.eval()
 
     def get_state(self, game_board, player, opponent):
-        state = np.zeros((7, 7, 3))  # 3 channels: empty, player, opponent
+        state = np.zeros((3, 7, 7))  # 3 channels: empty, player, opponent
         for i in range(-3, 4):
             for j in range(-3, 4):
                 x, y = player.x + i, player.y + j
                 if 0 <= x < game_board.width and 0 <= y < game_board.height:
                     if game_board.grid[y][x] == 0:
-                        state[i+3][j+3][0] = 1  # Empty
+                        state[0][i+3][j+3] = 1  # Empty
                     elif game_board.grid[y][x] == player.player_id:
-                        state[i+3][j+3][1] = 1  # Player
+                        state[1][i+3][j+3] = 1  # Player
                     else:
-                        state[i+3][j+3][2] = 1  # Opponent
+                        state[2][i+3][j+3] = 1  # Opponent
                 else:
-                    state[i+3][j+3][2] = 1  # Treat walls as opponent
-        return state.flatten()
+                    state[2][j+3][j+3] = 1  # Treat walls as opponent
+        return state
 
     def get_valid_directions(self, current_direction):
         invalid_direction = [-current_direction[0], -current_direction[1]]
@@ -82,24 +89,65 @@ class RLAgent:
         if len(self.memory) < batch_size:
             return
         minibatch = random.sample(self.memory, batch_size)
+        
+        states = []
+        next_states = []
+        actions = []
+        rewards = []
+        dones = []
+        
         for state, action, reward, next_state, done in minibatch:
-            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-            next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0).to(self.device)
+            states.append(state)
+            next_states.append(next_state)
+            actions.append(action)
+            rewards.append(reward)
+            dones.append(done)
             
-            target = reward
-            if not done:
-                target = reward + self.gamma * torch.max(self.model(next_state_tensor)).item()
             
-            target_f = self.model(state_tensor)
-            target_f[0][self.directions.index(action)] = target
-            
-            loss = nn.MSELoss()(self.model(state_tensor), target_f)
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+        states_tensor = torch.FloatTensor(np.array(states)).to(self.device)
+        next_states_tensor = torch.FloatTensor(np.array(next_states)).to(self.device)
+        rewards_tensor = torch.tensor(np.array(rewards)).to(self.device)
+        dones_tensor = torch.tensor(np.array(dones)).to(self.device)
+        
+        action_map = {
+        (1, 0): 0,
+        (-1, 0): 1,
+        (0, 1): 2,
+        (0, -1): 3
+        }
+        
+        actions_indices = [action_map[tuple(action)] for action in actions]
+        actions_tensor = torch.tensor(actions_indices).to(self.device)
+        
+        current_q_values = self.model(states_tensor)
+    
+        # Get next Q-values (max Q-value for each next state)
+        next_q_values = self.model(next_states_tensor)
+        next_q_values_max = torch.max(next_q_values, dim=1)[0].unsqueeze(1)  # Get max Q-value for each next state
+        
+        # Calculate the target Q-values
+        target_q_values = current_q_values.clone()
+        
+        dones_tensor = dones_tensor.float()
+        
+        
+        # print(f"Batch size: {batch_size}")
+        # print(f"Actions tensor shape: {actions_tensor.shape}")
+        # print(f"Target Q-values shape: {target_q_values.shape}")
+        # print(f"Rewards tensor shape: {rewards_tensor.shape}")
+        # print(f"Dones tensor shape: {dones_tensor.shape}")
+        # print(f"Next Q-values max shape: {next_q_values_max.squeeze(1).shape}")
+        
+        target_q_values[torch.arange(batch_size), actions_tensor] = rewards_tensor + (1 - dones_tensor) * self.gamma * next_q_values_max.squeeze(1)
+        
+        # Compute loss (MSE between current and target Q-values)
+        loss = nn.MSELoss()(current_q_values.gather(1, actions_tensor.unsqueeze(1)), target_q_values.gather(1, actions_tensor.unsqueeze(1)))
 
-        # if self.epsilon > self.epsilon_min:
-        #     self.epsilon *= self.epsilon_decay
+        # Perform backpropagation and optimization
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
 
     def train(self, game_board, player, opponent):
         state = self.get_state(game_board, player, opponent)
@@ -139,6 +187,12 @@ class RLAgent:
 
         self.episode_rewards.append(total_reward)
         return total_reward
+    
+    def update_epsilon(self, total_episodes, episode):
+        decay_rate = 0.01  # Decay rate, you can experiment with different values
+
+        # Exponential decay formula
+        self.epsilon = self.epsilon_min + (1 - self.epsilon_min) * math.exp(-decay_rate * episode)
 
     def save_model(self, filename):
         torch.save(self.model.state_dict(), filename)
