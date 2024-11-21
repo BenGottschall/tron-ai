@@ -2,6 +2,7 @@ import pygame
 from game_board import GameBoard
 from player import Player
 from rl_ai import RLAgent
+import torch
 
 def initialize_game():
     pygame.init()
@@ -26,15 +27,27 @@ def run_game(ai_class1, ai_class2, model_file1=None, model_file2=None):
     screen = initialize_game()
     game_board = GameBoard(40, 30)
     
-    ai1 = RLAgent(state_size=(3, 7, 7), action_size=4, player_id=1, model_file=model_file1) if ai_class1 == RLAgent else ai_class1()
-    ai2 = RLAgent(state_size=(3, 7, 7), action_size=4, player_id=2, model_file=model_file2) if ai_class2 == RLAgent else ai_class2()
+    ai1 = RLAgent(state_size=(3, 15, 15), action_size=4, player_id=1, model_file=model_file1) if ai_class1 == RLAgent else ai_class1()
+    ai2 = RLAgent(state_size=(3, 15, 15), action_size=4, player_id=2, model_file=model_file2) if ai_class2 == RLAgent else ai_class2()
     
-    player1 = Player(10, 15, (255, 0, 0), 1, ai1)
-    player2 = Player(30, 15, (0, 0, 255), 2, ai2)
+    # Validate models after loading
+    dummy_input = torch.zeros((1, 3, 15, 15)).to(ai1.device)
+    with torch.no_grad():
+        print(f"AI1 dummy output: {ai1.model(dummy_input)}")
+        print(f"AI2 dummy output: {ai2.model(dummy_input)}")
+    
+    player1 = Player(10, 15, (0, 0, 255), 1, ai1)
+    player2 = Player(30, 15, (255, 0, 0), 2, ai2)
+    
+    game_board.grid[player1.y][player1.x] = player1.player_id
+    game_board.grid[player2.y][player2.x] = player2.player_id
+    
 
     # Set opponents for both players
     player1.set_opponent(player2)
     player2.set_opponent(player1)
+    
+    print(player1.controller.epsilon)
 
     clock = pygame.time.Clock()
 
@@ -50,9 +63,9 @@ def run_game(ai_class1, ai_class2, model_file1=None, model_file2=None):
                 game_board.grid[player1.y][player1.x] = player1.player_id
                 game_board.grid[player2.y][player2.x] = player2.player_id
         draw_game(screen, game_board, player1, player2)
-        clock.tick(10)
+        clock.tick(5)
 
     pygame.quit()
 
 if __name__ == "__main__":
-    run_game(RLAgent, RLAgent, "tron_model_player1_checkpoint_high_score.pth", "tron_model_player2_checkpoint_high_score.pth")
+    run_game(RLAgent, RLAgent, "tron_model_player1_high_score.pth", "tron_model_player1_high_score.pth")
