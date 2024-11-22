@@ -56,4 +56,4 @@ def run_game(ai_class1, ai_class2, model_file1=None, model_file2=None):
     pygame.quit()
 
 if __name__ == "__main__":
-    run_game(RLAgent, RLAgent, "tron_model_player1_checkpoint_450.pth", "tron_model_player2_checkpoint_450.pth")
+    run_game(RLAgent, RLAgent, "bob_450.pth", "bob_450.pth")

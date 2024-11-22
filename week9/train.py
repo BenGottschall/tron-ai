@@ -17,8 +17,8 @@ def plot_rewards(rewards1, rewards2):
 
 def train():
     game_board = GameBoard(40, 30)
-    rl_agent1 = RLAgent(action_size=4, player_id=1, grid_size=21)
-    rl_agent2 = RLAgent(action_size=4, player_id=2, grid_size=21)
+    rl_agent1 = RLAgent(action_size=4, player_id=1, grid_size=15)
+    rl_agent2 = RLAgent(action_size=4, player_id=2, grid_size=15)
     player1 = Player(5, 5, (255, 0, 0), 1, rl_agent1)
     player2 = Player(15, 5, (0, 0, 255), 2, rl_agent2)
     game_board.grid[player1.y][player1.x] = player1.player_id
@@ -32,6 +32,7 @@ def train():
     rewards1 = []
     rewards2 = []
     epsilon_update_interval = 50
+    target_update_interval = 100
     high_score1, high_score2 = 0, 0
 
     for episode in range(num_episodes):
@@ -43,7 +44,7 @@ def train():
         player2.reset(30, 15)
         
         done1, done2 = False, False
-        max_steps_after_win = 700
+        max_steps_after_win = 500
         total_reward1 = 0
         total_reward2 = 0
         
@@ -53,7 +54,7 @@ def train():
             reward1, reward2 = 0, 0
             # Player 1's turn
             if not done1:
-                current_state1 = rl_agent1.get_state(game_board, player1, player2)
+                grid1, compact1 = rl_agent1.get_state(game_board, player1, player2)
                 collision1 = player1.move(game_board)
                 reward1 = 1 # default reward
                 if collision1 or game_board.is_collision(player1.x, player1.y):
@@ -64,7 +65,7 @@ def train():
             
             # Player 2's turn
             if not done2:
-                current_state2 = rl_agent2.get_state(game_board, player2, player1)
+                grid2, compact2 = rl_agent2.get_state(game_board, player2, player1)
                 collision2 = player2.move(game_board)
                 reward2 = 1 # default reward
                 if collision2 or game_board.is_collision(player2.x, player2.y):
@@ -76,15 +77,15 @@ def train():
             # update gameboard, get next states, modfy total reward, add experience to memory
             if not done1:
                 game_board.grid[player1.y][player1.x] = player1.player_id
-                next_state1 = rl_agent1.get_state(game_board, player1, player2)
+                next_grid1, next_compact1 = rl_agent1.get_state(game_board, player1, player2)
                 total_reward1 += reward1
-                rl_agent1.remember(current_state1, player1.direction, reward1, next_state1, done1)
+                rl_agent1.remember((grid1, compact1), player1.direction, reward1, (next_grid1, next_compact1), done1)
             
             if not done2:
                 game_board.grid[player2.y][player2.x] = player2.player_id
-                next_state2 = rl_agent2.get_state(game_board, player2, player1)
+                next_grid2, next_compact2 = rl_agent2.get_state(game_board, player2, player1)
                 total_reward2 += reward2
-                rl_agent2.remember(current_state2, player2.direction, reward2, next_state2, done2)
+                rl_agent2.remember((grid2, compact2), player2.direction, reward2, (next_grid2, next_compact2), done2)
             
             if done1 and not done2:
                 max_steps_after_win -= 1
@@ -106,12 +107,18 @@ def train():
         
         if(total_reward1 > high_score1):
             high_score1 = total_reward1
+            rl_agent1.save_model(f"drew.pth")
         if(total_reward2 > high_score2):
             high_score2 = total_reward2
+            rl_agent2.save_model(f"carl.pth")
 
         if episode % epsilon_update_interval == 0:
             player1.controller.update_epsilon(num_episodes, episode)
             player2.controller.update_epsilon(num_episodes, episode)
+            
+        if episode % target_update_interval == 0:
+            rl_agent1.update_target_model()
+            rl_agent2.update_target_model()
 
         if episode % 20 == 0:
             print(f"Episode: {episode}, HighScore1: {high_score1}, HighSchore2: {high_score2}\n Player 1 Reward: {total_reward1}, Epsilon: {player1.controller.epsilon}\n Player 2 Reward: {total_reward2}, Epsilon: {player2.controller.epsilon}")
@@ -120,14 +127,7 @@ def train():
             rl_agent1.save_model(f"tron_model_player1_checkpoint_{episode}.pth")
             rl_agent2.save_model(f"tron_model_player2_checkpoint_{episode}.pth")
             plot_rewards(rewards1, rewards2)
-        
-        if total_reward1 > high_score1:
-            high_score1 = total_reward1
-            rl_agent1.save_model(f"drew_{high_score1}.pth")
-        
-        if total_reward2 > high_score2:
-            high_score2 = total_reward2
-            rl_agent2.save_model(f"carl_{high_score2}.pth")
+            
 
     rl_agent1.save_model("tron_model_player1.pth")
     rl_agent2.save_model("tron_model_player2.pth")

@@ -7,42 +7,73 @@ import math
 from collections import deque
 
 class DQN(nn.Module):
-    def __init__(self, input_shape, output_size):
+    def __init__(self, grid_input_shape, compact_input_size, output_size):
         super(DQN, self).__init__()
-        self.conv1 = nn.Conv2d(input_shape[0], 32, kernel_size = 3, stride = 1)
-        self.bn1 = nn.LayerNorm([32, 19, 19])
-        self.conv2 = nn.Conv2d(32, 64, kernel_size = 3, stride=1)
-        self.bn2 = nn.LayerNorm([64, 17, 17])
         
-        self.fc1 = nn.Linear(64 * 17 * 17, 128)
-        self.fc2 = nn.Linear(128, output_size)
+        # Convolutional layers for grid data
+        self.conv1 = nn.Conv2d(grid_input_shape[0], 32, kernel_size=3, stride=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1)
+        
+        # Flatten the convolutional output
+        conv_output_size = self._get_conv_output_size(grid_input_shape)
+        self.fc_grid = nn.Linear(conv_output_size, 128)
 
-    def forward(self, x):
-        x = torch.relu(self.bn1(self.conv1(x)))
-        x = torch.relu(self.bn2(self.conv2(x)))
-        x = x.view(x.size(0), -1)  # Flatten the convolutional output
-        x = torch.relu(self.fc1(x))
-        return self.fc2(x)
+        # Fully connected layers for compact data
+        self.fc_compact = nn.Linear(compact_input_size, 64)
+
+        # Combine both outputs
+        self.fc_combined = nn.Linear(128 + 64, 128)
+        self.fc_output = nn.Linear(128, output_size)
+
+    def _get_conv_output_size(self, input_shape):
+        # Dummy forward pass to calculate the flattened size after convolutions
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, *input_shape)
+            x = torch.relu(self.conv1(dummy_input))
+            x = torch.relu(self.conv2(x))
+            return x.numel()  # Total number of elements in the output
+
+    def forward(self, grid, compact):
+        # Process the grid data
+        x_grid = torch.relu(self.conv1(grid))
+        x_grid = torch.relu(self.conv2(x_grid))
+        x_grid = x_grid.view(x_grid.size(0), -1)  # Flatten
+        x_grid = torch.relu(self.fc_grid(x_grid))
+
+        # Process the compact data
+        x_compact = torch.relu(self.fc_compact(compact))
+
+        # Combine both processed inputs
+        x = torch.cat([x_grid, x_compact], dim=1)
+        x = torch.relu(self.fc_combined(x))
+        return self.fc_output(x)
 
 class RLAgent:
-    def __init__(self, action_size, player_id, grid_size = 21, model_file=None):
+    def __init__(self, action_size, player_id, grid_size = 15, model_file=None):
         self.grid_size = grid_size
-        self.state_size = (3, grid_size, grid_size)
+        
         self.action_size = action_size
         self.player_id = player_id
         self.memory = deque(maxlen=100000)
-        self.gamma = 0.9  # discount rate
+        self.gamma = 0.99  # discount rate
         self.epsilon = 0.01 if model_file else 1.0  # exploration rate
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = DQN(self.state_size, action_size).to(self.device)
-        self.target_model = DQN(self.state_size, action_size).to(self.device)
+        
+        self.grid_input_shape = (3, grid_size, grid_size)
+        self.compact_input_size = 12 # 8 direction + 4 pos
+        self.model = DQN(self.grid_input_shape, self.compact_input_size, action_size).to(self.device)
+        
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.directions = [[0, -1], [0, 1], [-1, 0], [1, 0]]  # Up, Down, Left, Right
         self.episode_rewards = []
         self.training_step = 0
+        
+        self.target_model = DQN(self.grid_input_shape, self.compact_input_size, action_size).to(self.device)
+        self.target_model.load_state_dict(self.model.state_dict())
+        self.target_model.eval()
 
         if model_file:
             self.load_model(model_file)
@@ -50,46 +81,69 @@ class RLAgent:
             for name, param in self.model.named_parameters():
                 assert not torch.isnan(param).any(), f"NaN in parameter {name} after loading model!"
                 
-        self.target_model.load_state_dict(self.model.state_dict())
+        
             
     def update_target_model(self):
         self.target_model.load_state_dict(self.model.state_dict())
 
     def get_state(self, game_board, player, opponent):
         grid_size = self.grid_size
-        state = np.zeros((3, grid_size, grid_size))  # 3 channels: empty, player, opponent
         half_size = grid_size // 2
+        max_distance = max(game_board.width, game_board.height)
+        
+        # Grid Representation
+        state = np.zeros((3, grid_size, grid_size))  # 3 channels: empty, player, opponent
         for i in range(-half_size, half_size + 1):
             for j in range(-half_size, half_size + 1):
                 x, y = player.x + i, player.y + j
                 if 0 <= x < game_board.width and 0 <= y < game_board.height:
                     if game_board.grid[y][x] == 0:
-                        state[0][i+3][j+3] = 1  # Empty
+                        state[0][i+half_size][j+half_size] = 1  # Empty
                     elif game_board.grid[y][x] == player.player_id:
-                        state[1][i+3][j+3] = 1  # Player
+                        state[1][i+half_size][j+half_size] = 1  # Player
                     else:
-                        state[2][i+3][j+3] = 1  # Opponent
+                        state[2][i+half_size][j+half_size] = 1  # Opponent
                 else:
-                    state[2][j+3][j+3] = 1  # Treat walls as opponent
-        return state
+                    state[2][j+half_size][j+half_size] = 1  # Treat walls as opponent
+        
+        # Directional Data
+        directions = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
+        directional_data = []
+        for dx, dy in directions:
+            dist = 0
+            x, y = player.x, player.y
+            while 0 <= x + dx < game_board.width and 0 <= y + dy < game_board.height:
+                x += dx
+                y += dy
+                dist += 1
+                if game_board.grid[y][x] != 0:
+                    break
+            directional_data.append(min(dist, max_distance))
+        
+        directional_data = [d / max_distance for d in directional_data]
+        
+        # Positional Data
+        positional_data = [
+            player.x / game_board.width,
+            player.y / game_board.height,
+            opponent.x / game_board.width,
+            opponent.y / game_board.height,
+        ]
+        
+        return state, np.array(directional_data + positional_data)
 
     def get_valid_directions(self, current_direction):
         invalid_direction = [-current_direction[0], -current_direction[1]]
         return [d for d in self.directions if d != invalid_direction]
 
     def get_direction(self, game_board, player, opponent):
-        state = self.get_state(game_board, player, opponent)
+        grid, compact = self.get_state(game_board, player, opponent)
         valid_directions = self.get_valid_directions(player.direction)
         
-        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        grid_tensor = torch.FloatTensor(grid).unsqueeze(0).to(self.device)
+        compact_tensor = torch.FloatTensor(compact).unsqueeze(0).to(self.device)
         with torch.no_grad():
-            q_values = self.model(state_tensor)
-            
-        # print(f"State tensor: {state_tensor}")
-        # assert not torch.isnan(state_tensor).any(), "State tensor contains NaN values."
-        # assert torch.isfinite(state_tensor).all(), "State tensor contains infinite values."
-
-
+            q_values = self.model(grid_tensor, compact_tensor)
             
         # Convert Q-values to a numpy array for manipulation
         q_values_np = q_values.cpu().numpy().squeeze()
@@ -137,63 +191,53 @@ class RLAgent:
     def replay(self, batch_size):
         if len(self.memory) < batch_size:
             return
+
         minibatch = random.sample(self.memory, batch_size)
         
-        states = []
-        next_states = []
-        actions = []
-        rewards = []
-        dones = []
-        
-        for state, action, reward, next_state, done in minibatch:
-            states.append(state)
-            next_states.append(next_state)
+        grids, compacts = [], []
+        next_grids, next_compacts = [], []
+        actions, rewards, dones = [], [], []
+
+        # Extract data from the minibatch
+        for (grid, compact), action, reward, (next_grid, next_compact), done in minibatch:
+            grids.append(grid)
+            compacts.append(compact)
+            next_grids.append(next_grid)
+            next_compacts.append(next_compact)
             actions.append(action)
             rewards.append(reward)
             dones.append(done)
-            
-            
-        states_tensor = torch.FloatTensor(np.array(states)).to(self.device)
-        next_states_tensor = torch.FloatTensor(np.array(next_states)).to(self.device)
+
+        # Convert data to tensors
+        grid_tensors = torch.FloatTensor(np.array(grids)).to(self.device)
+        compact_tensors = torch.FloatTensor(np.array(compacts)).to(self.device)
+        next_grid_tensors = torch.FloatTensor(np.array(next_grids)).to(self.device)
+        next_compact_tensors = torch.FloatTensor(np.array(next_compacts)).to(self.device)
         rewards_tensor = torch.tensor(np.array(rewards)).to(self.device)
-        dones_tensor = torch.tensor(np.array(dones)).to(self.device)
+        dones_tensor = torch.tensor(np.array(dones)).float().to(self.device)
         
-        action_map = {
-        (1, 0): 0,
-        (-1, 0): 1,
-        (0, 1): 2,
-        (0, -1): 3
-        }
+        # Map actions to indices
+        action_map = {(-1, 0): 0, (1, 0): 1, (0, -1): 2, (0, 1): 3}
         
         actions_indices = [action_map[tuple(action)] for action in actions]
-        actions_tensor = torch.tensor(actions_indices).to(self.device)
-        
-        current_q_values = self.model(states_tensor)
-    
-        # Get next Q-values (max Q-value for each next state)
-        next_q_values = self.target_model(next_states_tensor)
-        next_q_values_max = torch.max(next_q_values, dim=1)[0].unsqueeze(1)  # Get max Q-value for each next state
-        
-        # Calculate the target Q-values
-        target_q_values = current_q_values.clone()
-        
-        dones_tensor = dones_tensor.float()
-        
-        
-        # print(f"Batch size: {batch_size}")
-        # print(f"Actions tensor shape: {actions_tensor.shape}")
-        # print(f"Target Q-values shape: {target_q_values.shape}")
-        # print(f"Rewards tensor shape: {rewards_tensor.shape}")
-        # print(f"Dones tensor shape: {dones_tensor.shape}")
-        # print(f"Next Q-values max shape: {next_q_values_max.squeeze(1).shape}")
-        
-        target_q_values[torch.arange(batch_size), actions_tensor] = rewards_tensor + (1 - dones_tensor) * self.gamma * next_q_values_max.squeeze(1)
-        
-        # Compute loss (MSE between current and target Q-values)
-        loss = nn.MSELoss()(current_q_values.gather(1, actions_tensor.unsqueeze(1)), target_q_values.gather(1, actions_tensor.unsqueeze(1)))
-        
+        actions_tensor = torch.tensor(actions_indices).to(self.device).unsqueeze(1)  # Shape: (batch_size, 1)
 
-        # Perform backpropagation and optimization
+        # Forward pass for current and next Q-values
+        current_q_values = self.model(grid_tensors, compact_tensors)
+        
+        with torch.no_grad():
+            next_q_values = self.target_model(next_grid_tensors, next_compact_tensors)
+            next_q_values_max = torch.max(next_q_values, dim=1)[0]  # Max Q-value for each next state
+
+        # Compute target Q-values
+        targets = rewards_tensor + (1 - dones_tensor) * self.gamma * next_q_values_max
+        targets = targets.unsqueeze(1)
+        
+        #Compute loss
+        predicted_q_values = current_q_values.gather(1, actions_tensor)
+        loss = nn.MSELoss()(predicted_q_values, targets)
+
+        #Backpropagation
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -242,7 +286,8 @@ class RLAgent:
         decay_rate = 0.005  # Decay rate, you can experiment with different values
 
         # Exponential decay formula
-        self.epsilon = self.epsilon_min + (1 - self.epsilon_min) * math.exp(-decay_rate * episode)
+        if self.epsilon > self.epsilon_min:
+            self.epsilon = self.epsilon_min + (1 - self.epsilon_min) * math.exp(-decay_rate * episode)
 
     def save_model(self, filename):
         for name, param in self.model.named_parameters():

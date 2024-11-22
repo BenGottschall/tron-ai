@@ -16,7 +16,7 @@ class Player:
         self.player_id = player_id
         self.direction = [1, 0] if player_id == 1 else [-1, 0]
         self.trail = [(x, y)]
-        self.controller = ai
+        self.controller = ai if ai else None
         self.opponent = None  # Will be set later
 
     def set_opponent(self, opponent):
@@ -33,8 +33,9 @@ class Player:
         if self.opponent is None:
             raise ValueError("Opponent not set. Call set_opponent() before moving.")
 
-        action = self.controller.get_direction(game_board, self, self.opponent)
-        self.change_direction(action)
+        if self.controller:
+            action = self.controller.get_direction(game_board, self, self.opponent)
+            self.change_direction(action)
 
         new_x = self.x + self.direction[0]
         new_y = self.y + self.direction[1]

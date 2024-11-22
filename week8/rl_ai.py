@@ -156,6 +156,7 @@ class RLAgent:
         next_states_tensor = torch.FloatTensor(np.array(next_states)).to(self.device)
         rewards_tensor = torch.tensor(np.array(rewards)).to(self.device)
         dones_tensor = torch.tensor(np.array(dones)).to(self.device)
+        dones_tensor = dones_tensor.float()
         
         action_map = {
         (1, 0): 0,
@@ -175,9 +176,6 @@ class RLAgent:
         
         # Calculate the target Q-values
         target_q_values = current_q_values.clone()
-        
-        dones_tensor = dones_tensor.float()
-        
         
         # print(f"Batch size: {batch_size}")
         # print(f"Actions tensor shape: {actions_tensor.shape}")

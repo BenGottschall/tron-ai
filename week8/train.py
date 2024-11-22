@@ -32,6 +32,10 @@ def train():
     rewards1 = []
     rewards2 = []
     epsilon_update_interval = 50
+    target_update_interval = 100
+    
+    high_score1 = 0
+    high_score2 = 0
 
     for episode in range(num_episodes):
         game_board = GameBoard(40, 30)
@@ -46,8 +50,6 @@ def train():
         total_reward1 = 0
         total_reward2 = 0
         
-        high_score1 = 0
-        high_score2 = 0
         step_counter = 0
 
         while not (done1 and done2):
@@ -108,6 +110,18 @@ def train():
         if episode % epsilon_update_interval == 0:
             player1.controller.update_epsilon(num_episodes, episode)
             player2.controller.update_epsilon(num_episodes, episode)
+            
+        if episode % target_update_interval == 0:
+            rl_agent1.update_target_model()
+            rl_agent2.update_target_model()
+            
+        if total_reward1 > high_score1:
+            high_score1 = total_reward1
+            rl_agent1.save_model(f"betsy.pth")
+        
+        if total_reward2 > high_score2:
+            high_score2 = total_reward2
+            rl_agent2.save_model(f"carlitos.pth")
 
         if episode % 20 == 0:
             print(f"Episode: {episode} HighScore1: {high_score1}, HighSchore2: {high_score2}\n Player 1 Reward: {total_reward1}, Epsilon: {player1.controller.epsilon}\n Player 2 Reward: {total_reward2}, Epsilon: {player2.controller.epsilon}")
@@ -117,13 +131,7 @@ def train():
             rl_agent2.save_model(f"tron_model_player2_checkpoint_{episode}.pth")
             plot_rewards(rewards1, rewards2)
         
-        if total_reward1 > high_score1:
-            high_score1 = total_reward1
-            rl_agent1.save_model(f"tron_model_player1_high_score.pth")
         
-        if total_reward2 > high_score2:
-            high_score2 = total_reward2
-            rl_agent2.save_model(f"tron_model_player2_high_score.pth")
 
     rl_agent1.save_model("tron_model_player1.pth")
     rl_agent2.save_model("tron_model_player2.pth")
