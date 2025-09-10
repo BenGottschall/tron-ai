@@ -1,12 +1,17 @@
+import time
 import pygame
 from game_board import GameBoard
 from player import Player
 from rl_ai import RLAgent
 import torch
 
+#define screen height and width
+SCREEN_WIDTH = 600
+SCREEN_HEIGHT = 400
+
 def initialize_game():
     pygame.init()
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Tron Game")
     return screen
 
@@ -34,8 +39,10 @@ def draw_game(screen, game_board, player1, player2):
 
 def run_game(ai_class1, ai_class2, model_file1=None, model_file2=None):
     screen = initialize_game()
-    game_board = GameBoard(40, 30)
     
+    # Set Gameboard width and height based on window size
+    game_board = GameBoard(SCREEN_WIDTH // 20, SCREEN_HEIGHT // 20)
+
     ai1 = RLAgent(action_size=4, player_id=1, grid_size=15, model_file=model_file1) if ai_class1 == RLAgent else ai_class1()
     ai2 = RLAgent(action_size=4, player_id=2, grid_size=15, model_file=model_file2) if ai_class2 == RLAgent else ai_class2()
     
@@ -45,9 +52,10 @@ def run_game(ai_class1, ai_class2, model_file1=None, model_file2=None):
         print(f"AI1 dummy output: {ai1.model(dummy_input)}")
         print(f"AI2 dummy output: {ai2.model(dummy_input)}")
     
-    player1 = Player(10, 15, (0, 0, 255), 1, ai1)
-    player2 = Player(30, 15, (255, 0, 0), 2, ai2)
-    
+    # Set starting positions based on window size
+    player1 = Player(((SCREEN_WIDTH // 20) // 2) - 6, (SCREEN_HEIGHT // 20) // 2, (0, 0, 255), 1, ai1)
+    player2 = Player(((SCREEN_WIDTH // 20) // 2) + 6, (SCREEN_HEIGHT // 20) // 2, (255, 0, 0), 2, ai2)
+
     game_board.grid[player1.y][player1.x] = player1.player_id
     game_board.grid[player2.y][player2.x] = player2.player_id
     
@@ -78,8 +86,11 @@ def run_game(ai_class1, ai_class2, model_file1=None, model_file2=None):
     
 def run_human_game(ai_class1, model_file1=None):
     screen = initialize_game()
-    game_board = GameBoard(40, 30)
+    time.sleep(5)
     
+    #set gameboard size  based on window size
+    game_board = GameBoard(SCREEN_WIDTH // 20, SCREEN_HEIGHT // 20)
+
     ai = RLAgent(action_size=4, player_id=1, grid_size=15, model_file=model_file1) if ai_class1 == RLAgent else ai_class1()
     
     # Validate models after loading
@@ -87,9 +98,10 @@ def run_human_game(ai_class1, model_file1=None):
     # with torch.no_grad():
     #     print(f"AI1 dummy output: {ai.model(dummy_input)}")
     
-    player1 = Player(10, 15, (0, 0, 255), 1, ai=None)
-    player2 = Player(30, 15, (255, 0, 0), 2, ai)
-    
+    # Set starting positions based on window size
+    player1 = Player(((SCREEN_WIDTH // 20) // 2) - 6, (SCREEN_HEIGHT // 20) // 2, (0, 0, 255), 1, ai=None)
+    player2 = Player(((SCREEN_WIDTH // 20) // 2) + 6, (SCREEN_HEIGHT // 20) // 2, (255, 0, 0), 2, ai)
+
     game_board.grid[player1.y][player1.x] = player1.player_id
     game_board.grid[player2.y][player2.x] = player2.player_id
     
@@ -120,7 +132,7 @@ def run_human_game(ai_class1, model_file1=None):
                 game_board.grid[player1.y][player1.x] = player1.player_id
                 game_board.grid[player2.y][player2.x] = player2.player_id
         draw_game(screen, game_board, player1, player2)
-        clock.tick(10)
+        clock.tick(8)
 
     pygame.time.delay(2000)
     pygame.quit()
